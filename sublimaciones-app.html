@@ -1361,7 +1361,16 @@ function calcPromo() {
 async function startApp() {
   try {
     const saved = await cloudGet();
-    if(saved) DB = saved; else initDB();
+    if(saved) {
+      DB = saved;
+      if(!DB.pedidos) DB.pedidos = [];
+      if(!DB.finanzas) DB.finanzas = [];
+      if(!DB.clientes) DB.clientes = [];
+      if(!DB.deudas) DB.deudas = [];
+      if(!DB.presupuestosGuardados) DB.presupuestosGuardados = [];
+      if(!DB.respuestas) DB.respuestas = [];
+      if(!DB._nextId) DB._nextId = 100;
+    } else { initDB(); }
   } catch(e) {
     initDB();
   }
