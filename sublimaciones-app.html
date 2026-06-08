@@ -116,9 +116,60 @@ tr:hover td{background:rgba(255,255,255,0.015);}
 <!-- AUTO-DEPLOY-VERSION: 2026-06-07T07:01:07.770Z -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
+<!-- AUTH SCREEN -->
+<div id="auth-screen" style="position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+  <div style="width:100%;max-width:380px">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--accent);letter-spacing:-0.01em">Jota Sublimaciones</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:4px">Sistema de gestión</div>
+    </div>
+    <div style="background:var(--surface);border-radius:16px;padding:24px;border:1px solid var(--border)">
+      <div style="display:flex;margin-bottom:20px">
+        <button id="tab-login" onclick="authTab('login')" style="flex:1;padding:10px;background:none;border:none;border-bottom:2px solid var(--accent);color:var(--accent);font-weight:700;font-size:14px;cursor:pointer">Ingresar</button>
+        <button id="tab-register" onclick="authTab('register')" style="flex:1;padding:10px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);font-weight:600;font-size:14px;cursor:pointer">Registrarse</button>
+      </div>
+      <div id="login-form">
+        <input id="login-email" type="email" placeholder="Correo electrónico" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:10px;outline:none">
+        <input id="login-password" type="password" placeholder="Contraseña" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:16px;outline:none">
+        <button onclick="doLogin()" style="width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Ingresar</button>
+        <p id="login-error" style="color:#ef4444;font-size:12px;text-align:center;margin-top:10px;display:none"></p>
+      </div>
+      <div id="register-form" style="display:none">
+        <input id="reg-nombre" type="text" placeholder="Tu nombre" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:10px;outline:none">
+        <input id="reg-email" type="email" placeholder="Correo electrónico" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:10px;outline:none">
+        <input id="reg-password" type="password" placeholder="Contraseña (mín. 6 caracteres)" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:10px;outline:none">
+        <input id="reg-password2" type="password" placeholder="Repetir contraseña" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:16px;outline:none">
+        <button onclick="doRegister()" style="width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Crear cuenta</button>
+        <p id="register-error" style="color:#ef4444;font-size:12px;text-align:center;margin-top:10px;display:none"></p>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- PENDING -->
+<div id="pending-screen" style="position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:9998;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px">
+  <div style="text-align:center;max-width:300px;background:var(--surface);border-radius:16px;padding:32px;border:1px solid var(--border)">
+    <div style="font-size:48px;margin-bottom:16px">⏳</div>
+    <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:700;margin-bottom:8px;color:var(--text)">Acceso pendiente</div>
+    <div style="color:var(--text2);font-size:13px;margin-bottom:24px;line-height:1.5">Tu cuenta fue creada. El propietario debe aprobar tu acceso.</div>
+    <button onclick="doLogout()" style="padding:10px 24px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;font-size:14px">Cerrar sesión</button>
+  </div>
+</div>
+<!-- USERS MODAL -->
+<div id="users-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9990;display:none;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--surface);border-radius:16px;padding:24px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;border:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:700">👥 Gestión de usuarios</div>
+      <button onclick="document.getElementById('users-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text2)">✕</button>
+    </div>
+    <div id="users-list"><p style="color:var(--text2);font-size:13px">Cargando...</p></div>
+  </div>
+</div>
 <!-- LOADING -->
 <div id="loading">
   <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--accent);letter-spacing:-0.01em">Jota Sublimaciones</div>
@@ -413,14 +464,28 @@ tr:hover td{background:rgba(255,255,255,0.015);}
 // ═══════════════════════════════════════════════
 // STORAGE EN LA NUBE (Anthropic persistent storage)
 // ═══════════════════════════════════════════════
-const CLOUD_KEY = 'subliGestion_v3';
+// ════ FIREBASE AUTH + RTDB ════
+const firebaseConfig = {
+  apiKey: "AIzaSyA8Lp_O1BIWPyHoRUVRKk9nVy6GnuQiSZE",
+  authDomain: "jota-sublimaciones.firebaseapp.com",
+  databaseURL: "https://jota-sublimaciones-default-rtdb.firebaseio.com",
+  projectId: "jota-sublimaciones",
+  storageBucket: "jota-sublimaciones.firebasestorage.app",
+  messagingSenderId: "172045273109",
+  appId: "1:172045273109:web:e21fe9987b3e091a49661c"
+};
+firebase.initializeApp(firebaseConfig);
+const fbAuth = firebase.auth();
+const fbDB = firebase.database();
+let currentUser = null;
+let currentUserData = null;
 
 async function cloudGet() {
-  try { const r = await window.storage.get(CLOUD_KEY); return r ? JSON.parse(r.value) : null; }
-  catch { return null; }
+  try { const snap = await fbDB.ref('datos').get(); return snap.exists() ? snap.val() : null; }
+  catch(e) { return null; }
 }
 async function cloudSave(d) {
-  try { await window.storage.set(CLOUD_KEY, JSON.stringify(d)); }
+  try { await fbDB.ref('datos').set(d); }
   catch(e) { console.error('Error guardando:', e); }
 }
 
@@ -483,7 +548,13 @@ function buildNav() {
   document.getElementById('sidebar').innerHTML =
     `<div class="logo"><h1>Jota Sublimaciones</h1><span>Tu negocio organizado</span></div>` +
     makeItems('goPage') +
-    `<div class="nav-footer">☁️ Datos guardados en la nube</div>`;
+    `<div class="nav-footer">☁️ Firebase · sincronizado</div>` +
+    (currentUserData ? `<div style="padding:12px 16px 16px;border-top:1px solid var(--border);margin-top:4px">
+      <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${currentUserData.nombre||currentUser?.email}</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:10px">${currentUserData.rol==='propietario'?'👑 Propietario':'👤 Empleado'}</div>
+      ${currentUserData.rol==='propietario'?'<button onclick="abrirUsuarios()" style="width:100%;text-align:left;padding:7px 10px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;font-size:12px;margin-bottom:6px">👥 Gestionar usuarios</button>':''}
+      <button onclick="doLogout()" style="width:100%;text-align:left;padding:7px 10px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer;font-size:12px">🚪 Cerrar sesión</button>
+    </div>` : '');
   document.getElementById('mobileNav').innerHTML = makeItems('goPageMobile');
 }
 
@@ -1274,7 +1345,7 @@ function calcPromo() {
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
-async function init() {
+async function startApp() {
   const saved = await cloudGet();
   if(saved) DB = saved;
   else initDB();
@@ -1284,7 +1355,118 @@ async function init() {
   goPage('dashboard');
 }
 
-init();
+function authTab(tab) {
+  document.getElementById('login-form').style.display = tab==='login'?'block':'none';
+  document.getElementById('register-form').style.display = tab==='register'?'block':'none';
+  const loginStyle = tab==='login';
+  document.getElementById('tab-login').style.cssText = 'flex:1;padding:10px;background:none;border:none;border-bottom:2px solid '+(loginStyle?'var(--accent)':'transparent')+';color:'+(loginStyle?'var(--accent)':'var(--text2)')+';font-weight:'+(loginStyle?'700':'600')+';font-size:14px;cursor:pointer';
+  document.getElementById('tab-register').style.cssText = 'flex:1;padding:10px;background:none;border:none;border-bottom:2px solid '+(loginStyle?'transparent':'var(--accent)')+';color:'+(loginStyle?'var(--text2)':'var(--accent)')+';font-weight:'+(loginStyle?'600':'700')+';font-size:14px;cursor:pointer';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pw = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if(!email || !pw) { errEl.textContent='Completá todos los campos'; errEl.style.display='block'; return; }
+  try {
+    await fbAuth.signInWithEmailAndPassword(email, pw);
+  } catch(e) {
+    errEl.textContent = (e.code==='auth/invalid-credential'||e.code==='auth/wrong-password'||e.code==='auth/user-not-found') ? 'Email o contraseña incorrectos' : 'Error al ingresar';
+    errEl.style.display = 'block';
+  }
+}
+
+async function doRegister() {
+  const nombre = document.getElementById('reg-nombre').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pw = document.getElementById('reg-password').value;
+  const pw2 = document.getElementById('reg-password2').value;
+  const errEl = document.getElementById('register-error');
+  errEl.style.display = 'none';
+  if(!nombre||!email||!pw) { errEl.textContent='Completá todos los campos'; errEl.style.display='block'; return; }
+  if(pw!==pw2) { errEl.textContent='Las contraseñas no coinciden'; errEl.style.display='block'; return; }
+  if(pw.length<6) { errEl.textContent='La contraseña debe tener al menos 6 caracteres'; errEl.style.display='block'; return; }
+  try {
+    const cred = await fbAuth.createUserWithEmailAndPassword(email, pw);
+    await cred.user.updateProfile({ displayName: nombre });
+    // onAuthStateChanged handles the rest
+  } catch(e) {
+    errEl.textContent = e.code==='auth/email-already-in-use' ? 'Este email ya está registrado' : 'Error: '+e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+function doLogout() { fbAuth.signOut(); }
+
+async function abrirUsuarios() {
+  const modal = document.getElementById('users-modal');
+  const list = document.getElementById('users-list');
+  modal.style.display = 'flex';
+  list.innerHTML = '<p style="color:var(--text2);font-size:13px">Cargando...</p>';
+  try {
+    const snap = await fbDB.ref('usuarios').get();
+    if(!snap.exists()) { list.innerHTML='<p>No hay usuarios.</p>'; return; }
+    const users = snap.val();
+    list.innerHTML = Object.entries(users).map(([uid, u]) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:600;font-size:14px">${u.nombre||u.email}</div>
+          <div style="font-size:12px;color:var(--text2)">${u.email} · ${u.rol==='propietario'?'👑 Propietario':'👤 Empleado'}</div>
+          <div style="font-size:11px;color:${u.aprobado?'#22c55e':'#ef4444'};margin-top:2px">${u.aprobado?'✅ Aprobado':'⏳ Pendiente'}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-direction:column;align-items:flex-end">
+          ${uid!==currentUser.uid ? (u.aprobado
+            ? `<button onclick="toggleUser('${uid}',false)" style="padding:5px 10px;background:#ef4444;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Revocar</button>`
+            : `<button onclick="toggleUser('${uid}',true)" style="padding:5px 10px;background:#22c55e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Aprobar</button>`
+          ) : '<span style="font-size:11px;color:var(--text2)">Tú</span>'}
+        </div>
+      </div>
+    `).join('');
+  } catch(e) { list.innerHTML='<p style="color:#ef4444">Error cargando usuarios</p>'; }
+}
+
+async function toggleUser(uid, approve) {
+  await fbDB.ref('usuarios/'+uid+'/aprobado').set(approve);
+  toast(approve ? 'Usuario aprobado ✅' : 'Acceso revocado', '');
+  abrirUsuarios();
+}
+
+fbAuth.onAuthStateChanged(async user => {
+  if(!user) {
+    document.getElementById('auth-screen').style.display='flex';
+    document.getElementById('pending-screen').style.display='none';
+    document.getElementById('loading').style.display='none';
+    document.getElementById('appShell').style.display='none';
+    currentUser=null; currentUserData=null;
+    return;
+  }
+  currentUser = user;
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('loading').style.display='flex';
+  try {
+    let snap = await fbDB.ref('usuarios/'+user.uid).get();
+    if(!snap.exists()) {
+      const allSnap = await fbDB.ref('usuarios').get();
+      const isFirst = !allSnap.exists();
+      const ud = { nombre: user.displayName||user.email.split('@')[0], email: user.email, rol: isFirst?'propietario':'empleado', aprobado: isFirst };
+      await fbDB.ref('usuarios/'+user.uid).set(ud);
+      currentUserData = ud;
+    } else {
+      currentUserData = snap.val();
+    }
+    if(!currentUserData.aprobado) {
+      document.getElementById('pending-screen').style.display='flex';
+      document.getElementById('loading').style.display='none';
+      return;
+    }
+    await startApp();
+  } catch(e) {
+    console.error('Auth error:', e);
+    document.getElementById('loading').style.display='none';
+    document.getElementById('auth-screen').style.display='flex';
+  }
+});
 </script>
 </body>
 </html>
