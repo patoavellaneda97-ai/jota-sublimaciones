@@ -482,7 +482,11 @@ let currentUser = null;
 let currentUserData = null;
 
 async function cloudGet() {
-  try { const snap = await fbDB.ref('datos').get(); return snap.exists() ? snap.val() : null; }
+  try {
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000));
+    const snap = await Promise.race([fbDB.ref('datos').get(), timeout]);
+    return snap.exists() ? snap.val() : null;
+  }
   catch(e) { return null; }
 }
 async function cloudSave(d) {
@@ -1347,13 +1351,22 @@ function calcPromo() {
 // INIT
 // ═══════════════════════════════════════════════
 async function startApp() {
-  const saved = await cloudGet();
-  if(saved) DB = saved;
-  else initDB();
-  document.getElementById('loading').style.display='none';
-  document.getElementById('appShell').style.display='flex';
-  buildNav();
-  goPage('dashboard');
+  try {
+    const saved = await cloudGet();
+    if(saved) DB = saved; else initDB();
+  } catch(e) {
+    initDB();
+  }
+  try {
+    document.getElementById('loading').style.display='none';
+    document.getElementById('appShell').style.display='flex';
+    buildNav();
+    goPage('dashboard');
+  } catch(e) {
+    console.error('startApp render error:', e);
+    document.getElementById('loading').style.display='none';
+    document.getElementById('appShell').style.display='flex';
+  }
 }
 
 function authTab(tab) {
@@ -1469,9 +1482,10 @@ fbAuth.onAuthStateChanged(async user => {
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('loading').style.display='flex';
   try {
-    let snap = await fbDB.ref('usuarios/'+user.uid).get();
+    const _rtdbTimeout = (ms) => new Promise((_,rej) => setTimeout(()=>rej(new Error('rtdb-timeout')),ms));
+    let snap = await Promise.race([fbDB.ref('usuarios/'+user.uid).get(), _rtdbTimeout(8000)]);
     if(!snap.exists()) {
-      const allSnap = await fbDB.ref('usuarios').get();
+      const allSnap = await Promise.race([fbDB.ref('usuarios').get(), _rtdbTimeout(8000)]);
       const isFirst = !allSnap.exists();
       const ud = { nombre: user.displayName||user.email.split('@')[0], email: user.email, rol: isFirst?'propietario':'empleado', aprobado: isFirst };
       await fbDB.ref('usuarios/'+user.uid).set(ud);
