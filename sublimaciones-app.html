@@ -136,7 +136,7 @@ tr:hover td{background:rgba(255,255,255,0.015);}
       </div>
       <div id="login-form">
         <input id="login-email" type="email" placeholder="Correo electrónico" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:10px;outline:none">
-        <input id="login-password" type="password" placeholder="Contraseña" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:16px;outline:none">
+        <div style="position:relative"><input id="login-password" type="password" placeholder="Contraseña" style="padding-right:42px;width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:16px;outline:none"><button type="button" onclick="togglePwd('login-password',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text2);font-size:18px;line-height:1;padding:0" title="Mostrar/ocultar">👁</button></div>
         <button onclick="doLogin()" style="width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Ingresar</button>
           <button onclick="doForgotPassword()" style="width:100%;padding:8px;background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;margin-top:4px;text-decoration:underline">¿Olvidaste tu contraseña? Recuperar por email</button>
         <p id="login-error" style="color:#ef4444;font-size:12px;text-align:center;margin-top:10px;display:none"></p>
@@ -144,8 +144,8 @@ tr:hover td{background:rgba(255,255,255,0.015);}
       <div id="register-form" style="display:none">
         <input id="reg-nombre" type="text" placeholder="Tu nombre" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:10px;outline:none">
         <input id="reg-email" type="email" placeholder="Correo electrónico" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:10px;outline:none">
-        <input id="reg-password" type="password" placeholder="Contraseña (mín. 6 caracteres)" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:10px;outline:none">
-        <input id="reg-password2" type="password" placeholder="Repetir contraseña" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:16px;outline:none">
+        <div style="position:relative"><input id="reg-password" type="password" placeholder="Contraseña (mín. 6 caracteres)" style="padding-right:42px;width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:10px;outline:none"><button type="button" onclick="togglePwd('reg-password',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text2);font-size:18px;line-height:1;padding:0" title="Mostrar/ocultar">👁</button></div>
+        <div style="position:relative"><input id="reg-password2" type="password" placeholder="Repetir contraseña" style="padding-right:42px;width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:16px;outline:none"><button type="button" onclick="togglePwd('reg-password2',this)" tabindex="-1" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text2);font-size:18px;line-height:1;padding:0" title="Mostrar/ocultar">👁</button></div>
         <button onclick="doRegister()" style="width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Crear cuenta</button>
         <p id="register-error" style="color:#ef4444;font-size:12px;text-align:center;margin-top:10px;display:none"></p>
       </div>
@@ -1362,6 +1362,14 @@ function authTab(tab) {
   const loginStyle = tab==='login';
   document.getElementById('tab-login').style.cssText = 'flex:1;padding:10px;background:none;border:none;border-bottom:2px solid '+(loginStyle?'var(--accent)':'transparent')+';color:'+(loginStyle?'var(--accent)':'var(--text2)')+';font-weight:'+(loginStyle?'700':'600')+';font-size:14px;cursor:pointer';
   document.getElementById('tab-register').style.cssText = 'flex:1;padding:10px;background:none;border:none;border-bottom:2px solid '+(loginStyle?'transparent':'var(--accent)')+';color:'+(loginStyle?'var(--text2)':'var(--accent)')+';font-weight:'+(loginStyle?'600':'700')+';font-size:14px;cursor:pointer';
+}
+
+function togglePwd(id, btn) {
+  const input = document.getElementById(id);
+  if(!input) return;
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁';
 }
 
 async function doForgotPassword() {
