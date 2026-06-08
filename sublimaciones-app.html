@@ -925,9 +925,17 @@ function generarPDF() {
   const notas = document.getElementById('pres-notas')?.value||'';
   const total = presItems.reduce((s,i)=>s+(+i.cant||0)*(+i.precio||0),0);
   const fecha = new Date().toLocaleDateString('es-AR');
-  const id = nid();
+  const id = window._editingPresId || nid();
   DB.presupuestosGuardados = DB.presupuestosGuardados || [];
-  DB.presupuestosGuardados.unshift({id, cliente, fecha, total, items:[...presItems]});
+  if(window._editingPresId) {
+    const _eidx = DB.presupuestosGuardados.findIndex(x=>x.id===window._editingPresId);
+    if(_eidx !== -1) DB.presupuestosGuardados[_eidx] = {id, cliente, fecha, total, notas, items:[...presItems]};
+    window._editingPresId = null;
+    const _btnG = document.querySelector('[onclick="generarPDF()"]');
+    if(_btnG) _btnG.textContent = String.fromCodePoint(128196)+' Generar / Imprimir';
+  } else {
+    DB.presupuestosGuardados.unshift({id, cliente, fecha, total, notas, items:[...presItems]});
+  }
   save();
   renderPresGuardados();
 
@@ -1092,7 +1100,7 @@ function renderPresGuardados() {
         <div style="font-weight:600;font-size:14px">${p.cliente}</div>
         <div style="font-size:12px;color:var(--text2)">${p.fecha} &nbsp;·&nbsp; Total: ${fmt(p.total)}</div>
       </div>
-      <button class="btn-icon" onclick="borrarPresupuesto('${p.id}')" title="Eliminar" style="background:none;border:none;cursor:pointer;font-size:18px;padding:4px">🗑️</button>
+      <button class="btn-icon" onclick="borrarPresupuesto('${p.id}')" title="Eliminar" style="background:none;border:none;cursor:pointer;font-size:18px;padding:4px">🗑️</button><button class="btn-icon" onclick="editarPresupuesto('${p.id}')" title="Editar" style="background:none;border:none;cursor:pointer;font-size:18px;padding:4px">✏️</button>
     </div>
   `).join('');
 }
@@ -1102,6 +1110,23 @@ function borrarPresupuesto(id) {
   save();
   renderPresGuardados();
   toast('Presupuesto eliminado','');
+}
+function editarPresupuesto(id) {
+  const p = (DB.presupuestosGuardados||[]).find(x=>x.id==id);
+  if(!p) return;
+  window._editingPresId = id;
+  const cf = document.getElementById('pres-cliente');
+  if(cf) cf.value = p.cliente||'';
+  const nf = document.getElementById('pres-notas');
+  if(nf) nf.value = p.notas||'';
+  presItems = (p.items && p.items.length) ? p.items.map(it=>({...it})) : [{desc:'',cant:1,precio:0}];
+  renderPresItems();
+  updatePres();
+  const btnG = document.querySelector('[onclick="generarPDF()"]');
+  if(btnG) btnG.textContent = '✏️ Actualizar y descargar PDF';
+  const top = document.getElementById('pres-cliente');
+  if(top) top.scrollIntoView({behavior:'smooth', block:'center'});
+  toast('Presupuesto cargado para editar ✏️','');
 }
 
 
