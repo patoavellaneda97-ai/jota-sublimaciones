@@ -138,6 +138,7 @@ tr:hover td{background:rgba(255,255,255,0.015);}
         <input id="login-email" type="email" placeholder="Correo electrónico" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:10px;outline:none">
         <input id="login-password" type="password" placeholder="Contraseña" style="width:100%;box-sizing:border-box;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:14px;margin-bottom:16px;outline:none">
         <button onclick="doLogin()" style="width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Ingresar</button>
+          <button onclick="doForgotPassword()" style="width:100%;padding:8px;background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;margin-top:4px;text-decoration:underline">¿Olvidaste tu contraseña? Recuperar por email</button>
         <p id="login-error" style="color:#ef4444;font-size:12px;text-align:center;margin-top:10px;display:none"></p>
       </div>
       <div id="register-form" style="display:none">
@@ -1361,6 +1362,21 @@ function authTab(tab) {
   const loginStyle = tab==='login';
   document.getElementById('tab-login').style.cssText = 'flex:1;padding:10px;background:none;border:none;border-bottom:2px solid '+(loginStyle?'var(--accent)':'transparent')+';color:'+(loginStyle?'var(--accent)':'var(--text2)')+';font-weight:'+(loginStyle?'700':'600')+';font-size:14px;cursor:pointer';
   document.getElementById('tab-register').style.cssText = 'flex:1;padding:10px;background:none;border:none;border-bottom:2px solid '+(loginStyle?'transparent':'var(--accent)')+';color:'+(loginStyle?'var(--text2)':'var(--accent)')+';font-weight:'+(loginStyle?'600':'700')+';font-size:14px;cursor:pointer';
+}
+
+async function doForgotPassword() {
+  const email = document.getElementById('login-email').value.trim();
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  if(!email) { errEl.textContent='Ingresá tu email para recuperar la contraseña'; errEl.style.display='block'; return; }
+  try {
+    await fbAuth.sendPasswordResetEmail(email);
+    errEl.style.cssText = 'display:block;color:#22c55e;background:none;border:none;padding:8px 0;font-size:13px';
+    errEl.textContent = '✅ Email de recuperación enviado a ' + email;
+  } catch(e) {
+    errEl.textContent = e.code==='auth/user-not-found' ? 'No existe cuenta con ese email' : 'Error: '+e.message;
+    errEl.style.display = 'block';
+  }
 }
 
 async function doLogin() {
