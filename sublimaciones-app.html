@@ -120,6 +120,12 @@ tr:hover td{background:rgba(255,255,255,0.015);}
   .grid-4,.grid-3{grid-template-columns:1fr;}
   .main{padding:64px 12px 20px;}
 }
+
+.color-picker{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.color-chip{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;border:2px solid var(--border);cursor:pointer;font-size:12px;background:var(--surface2);color:var(--text1);transition:border-color .15s,background .15s;user-select:none;}
+.color-chip:hover{border-color:var(--accent);}
+.color-chip.sel{border-color:var(--accent);background:rgba(99,102,241,.12);}
+.color-dot{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.2);flex-shrink:0;}
 </style>
 <!-- AUTO-DEPLOY-VERSION: 2026-06-07T07:01:07.770Z -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -397,6 +403,7 @@ tr:hover td{background:rgba(255,255,255,0.015);}
       <div class="fg"><label class="flabel">Precio venta ($)</label><input class="finput" id="stock-precio" type="number" placeholder="0"></div>
     </div>
     <div class="fg"><label class="flabel">Stock mínimo (alerta)</label><input class="finput" id="stock-min" type="number" placeholder="3"></div>
+    <div class="fg"><label class="flabel">Colores disponibles (opcional)</label><div class="color-picker" id="stock-color-picker"></div></div>
     <div class="fg"><label class="flabel">Imagen del producto (opcional)</label><div style="display:flex;flex-direction:column;gap:6px"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:var(--bg2);border:1.5px dashed var(--border);border-radius:8px;padding:10px 14px;font-size:14px;color:var(--text2)"><input type="file" id="stock-imagen-input" accept="image/*" style="display:none" onchange="previewStockImg(this)">📷 Seleccionar imagen</label><img id="stock-imagen-preview" style="display:none;max-width:100%;max-height:140px;border-radius:8px;object-fit:contain"><button type="button" onclick="clearStockImg()" id="stock-imagen-clear" style="display:none;align-self:flex-start;margin-top:4px" class="btn btn-secondary btn-sm">✕ Quitar imagen</button></div></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-secondary" onclick="closeModal('modal-stock')">Cancelar</button>
@@ -650,6 +657,10 @@ function renderDashboard() {
 // ═══════════════════════════════════════════════
 // STOCK
 // ═══════════════════════════════════════════════
+const COLORES_LIST=[{n:'Negro/a',c:'#1a1a1a'},{n:'Blanco/a',c:'#f5f5f5'},{n:'Gris Melange',c:'#9e9e9e'},{n:'Gris Topo',c:'#7a7a6e'},{n:'Rojo\/a',c:'#d32f2f'},{n:'Azul Francia',c:'#1565c0'},{n:'Azul Marino',c:'#0d1b3e'},{n:'Bordó',c:'#7b1e37'},{n:'Celeste Suave',c:'#81d4fa'},{n:'Verde Militar',c:'#4a5c3f'},{n:'Amarillo\/a',c:'#fdd835'},{n:'Beige',c:'#d4b896'},{n:'Chocolate',c:'#5d3a1a'},{n:'Naranja',c:'#e65100'},{n:'Lila',c:'#b39ddb'},{n:'Turquesa',c:'#00bcd4'}];
+function buildColorPicker(sel=[]){return COLORES_LIST.map(c=>'<div class="color-chip'+(sel.includes(c.n)?' sel':'')+'" onclick="this.classList.toggle('sel')" data-col="'+c.n+'"><span class="color-dot" style="background:'+c.c+'"></span>'+c.n+'</div>').join('');}
+function getSelColors(){return[...document.querySelectorAll('#stock-color-picker .color-chip.sel')].map(el=>el.dataset.col);}
+
 function renderStock() {
   document.getElementById('stock-count').textContent = `Productos (${DB.stock.length})`;
   document.getElementById('stock-tbody').innerHTML = DB.stock.length===0
@@ -659,7 +670,7 @@ function renderStock() {
         const bajo = p.cantidad<=p.minimo;
         return `<tr>
           <td style="padding:3px 2px;text-align:center">${p.imagen?'<img src="'+p.imagen+'" style="width:38px;height:38px;object-fit:cover;border-radius:6px" alt="">':`<span style="font-size:20px;color:var(--border)">📷</span>`}</td>
-          <td><b>${p.nombre}</b></td>
+          <td><b>${p.nombre}</b>${(p.colores&&p.colores.length)?'<br><span style="display:inline-flex;gap:3px;margin-top:3px">'+p.colores.map(c=>{const cl=COLORES_LIST.find(x=>x.n===c);return cl?'<span title="'+c+'" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+cl.c+';border:1px solid rgba(0,0,0,.15)"></span>':''}).join('')+'</span>':''}</td>
           <td><span class="badge b-orange">${p.cat}</span></td>
           <td style="color:${bajo?'var(--danger)':'var(--accent3)'};font-weight:700">${p.cantidad}${bajo?' ⚠️':''}</td>
           <td>$${fmt(p.costo)}</td><td>$${fmt(p.precio)}</td>
@@ -681,6 +692,7 @@ function resetStockForm() {
   window._stockImg='';
   const _ri=document.getElementById('stock-imagen-input'),_rp=document.getElementById('stock-imagen-preview'),_rc=document.getElementById('stock-imagen-clear');
   if(_ri)_ri.value='';if(_rp){_rp.src='';_rp.style.display='none';}if(_rc)_rc.style.display='none';
+  const _scp=document.getElementById('stock-color-picker');if(_scp)_scp.innerHTML=buildColorPicker([]);
 }
 
 function previewStockImg(input){
@@ -716,6 +728,7 @@ function guardarProducto() {
     precio:parseFloat(document.getElementById('stock-precio').value)||0,
     minimo:parseInt(document.getElementById('stock-min').value)||3,
     imagen:window._stockImg??'',
+    colores:getSelColors(),
   };
   if(!prod.nombre) return toast('Ingresá el nombre del producto','err');
   if(editId) DB.stock = DB.stock.map(p=>p.id===prod.id?prod:p);
@@ -736,6 +749,7 @@ function editarProducto(id) {
   window._stockImg=p.imagen||'';
   const _ep=document.getElementById('stock-imagen-preview'),_ec=document.getElementById('stock-imagen-clear');
   if(p.imagen){_ep.src=p.imagen;_ep.style.display='block';_ec.style.display='block';}else{_ep.src='';_ep.style.display='none';_ec.style.display='none';}
+  const _cp=document.getElementById('stock-color-picker'); if(_cp) _cp.innerHTML=buildColorPicker(p.colores||[]);
   openModal('modal-stock');
 }
 
