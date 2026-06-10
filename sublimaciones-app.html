@@ -1417,7 +1417,7 @@ async function checkPedidosVencimiento() {
   const sty='background:#f97316;color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-weight:600;';
   b.innerHTML=n?'<div style="'+sty+'">'+String.fromCodePoint(9888,65039)+' '+n+' pedido'+(n>1?'s':'')+' con entrega en menos de 48hs</div>':'';
 }
-function startApp() {
+async function startApp() {
   try {
     const saved = await cloudGet();
     if(saved) {
