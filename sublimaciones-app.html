@@ -246,7 +246,7 @@ tr:hover td{background:rgba(255,255,255,0.015);}
         <button class="btn btn-secondary btn-sm" onclick="filtrarPedidos('listo')">✅ Listos</button>
         <button class="btn btn-secondary btn-sm" onclick="filtrarPedidos('entregado')">📦 Entregados</button>
       </div>
-      <div id="pedidos-list"></div>
+      <div id="pedidos-banner"></div><div id="pedidos-list"></div>
     </div>
 
     <!-- CALCULADORA -->
@@ -427,7 +427,8 @@ tr:hover td{background:rgba(255,255,255,0.015);}
 
 <div class="modal-overlay" id="modal-pedido">
   <div class="modal">
-    <div class="modal-header"><span class="modal-title">Nuevo pedido</span><button class="modal-close" onclick="closeModal('modal-pedido')">✕</button></div>
+    <div class="modal-header"><span class="modal-title" id="modal-pedido-title">Nuevo pedido</span><button class="modal-close" onclick="closeModal('modal-pedido')">✕</button></div>
+<input type="hidden" id="ped-edit-id" value="">
     <div class="fg"><label class="flabel">Cliente</label><input class="finput" id="ped-cliente" placeholder="Nombre del cliente"></div>
     <div class="fg"><label class="flabel">Descripción</label><textarea class="finput" id="ped-desc" rows="3" placeholder="Detallá el pedido..."></textarea></div>
     <div class="frow">
@@ -784,6 +785,34 @@ function confirmarVenta() {
 let filtroPed='todos';
 function filtrarPedidos(f) { filtroPed=f; renderPedidos(f); }
 
+function editarPedido(id) {
+  const p=DB.pedidos.find(x=>x.id===id);if(!p)return;
+  document.getElementById('ped-edit-id').value=id;
+  document.getElementById('modal-pedido-title').textContent='Editar pedido';
+  document.getElementById('ped-cliente').value=p.cliente||'';
+  document.getElementById('ped-desc').value=p.desc||'';
+  document.getElementById('ped-monto').value=p.monto||'';
+  document.getElementById('ped-fecha').value=p.fecha||'';
+  document.getElementById('ped-estado').value=p.estado||'pendiente';
+  openModal('modal-pedido');
+}
+function pedidoRecordatorioBtn(p) {
+  if(!p.fecha||p.estado==='entregado'||p.estado==='listo')return '';
+  const ahora=new Date();const fecha=new Date(p.fecha+'T23:59:59');const diff=fecha-ahora;
+  if(diff<=0||diff>172800000)return '';
+  const enviado=localStorage.getItem('aviso_'+p.id);
+  const cls='btn '+(enviado?'btn-success':'btn-warning')+' btn-sm';
+  return '<button class="'+cls+'" onclick="enviarRecordatorio('+p.id+')" title="Recordatorio">'+String.fromCodePoint(128231)+'</button>';
+}
+function enviarRecordatorio(id) {
+  const p=DB.pedidos.find(x=>x.id===id);if(!p)return;
+  const sub=encodeURIComponent('Recordatorio pedido #'+p.id+' - Entrega '+p.fecha);
+  const monto='Monto: '+p.monto;
+  const bod=encodeURIComponent('Pedido #'+p.id+'\nCliente: '+(p.cliente||'-')+'\nDescripcion: '+(p.desc||'-')+'\n'+monto+'\nFecha entrega: '+p.fecha+'\nEstado: '+p.estado);
+  window.open('mailto:patoavellaneda.97@gmail.com?subject='+sub+'&body='+bod);
+  localStorage.setItem('aviso_'+id,'1');
+  renderPedidos(filtroPed);
+}
 function renderPedidos(f) {
   const lista = f==='todos'?DB.pedidos:DB.pedidos.filter(p=>p.estado===f);
   document.getElementById('pedidos-list').innerHTML = lista.length===0
@@ -800,6 +829,8 @@ function renderPedidos(f) {
             <select class="finput" style="width:auto;font-size:12px;padding:5px 8px" onchange="cambiarEstado(${p.id},this.value)">
               ${Object.entries(estadoLabel).map(([v,l])=>`<option value="${v}"${p.estado===v?' selected':''}>${l}</option>`).join('')}
             </select>
+            <button class="btn btn-secondary btn-sm" onclick="editarPedido(${p.id})" title="Editar">✏️</button>
+            ${pedidoRecordatorioBtn(p)}
             <button class="btn btn-danger btn-sm" onclick="eliminarPedido(${p.id})">✕</button>
           </div>
         </div>
@@ -809,16 +840,20 @@ function renderPedidos(f) {
 function resetPedidoForm() {
   ['ped-cliente','ped-desc','ped-monto','ped-fecha'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('ped-estado').value='pendiente';
+  document.getElementById('ped-edit-id').value='';
+  document.getElementById('modal-pedido-title').textContent='Nuevo pedido';
 }
 
 function guardarPedido() {
-  const p={id:nid(),cliente:document.getElementById('ped-cliente').value,
+  const editId=document.getElementById('ped-edit-id').value;
+  const p={id:editId?parseInt(editId):nid(),cliente:document.getElementById('ped-cliente').value,
     desc:document.getElementById('ped-desc').value,
     monto:parseFloat(document.getElementById('ped-monto').value)||0,
     fecha:document.getElementById('ped-fecha').value,
     estado:document.getElementById('ped-estado').value};
   if(!p.cliente) return toast('Ingresá el cliente','err');
-  DB.pedidos.unshift(p);
+  if(editId){const idx=DB.pedidos.findIndex(x=>x.id===parseInt(editId));if(idx!==-1)DB.pedidos[idx]=p;}
+  else DB.pedidos.unshift(p);
   save(); closeModal('modal-pedido'); renderPedidos(filtroPed); toast('Pedido guardado ✅');
 }
 
@@ -1373,7 +1408,16 @@ function calcPromo() {
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
-async function startApp() {
+async function checkPedidosVencimiento() {
+  if(!DB||!DB.pedidos)return;
+  const ahora=new Date();
+  const limite=new Date(ahora.getTime()+172800000);
+  const n=DB.pedidos.filter(p=>p.fecha&&p.estado!=='entregado'&&p.estado!=='listo'&&new Date(p.fecha+'T23:59:59')>=ahora&&new Date(p.fecha+'T23:59:59')<=limite).length;
+  const b=document.getElementById('pedidos-banner');if(!b)return;
+  const sty='background:#f97316;color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:12px;font-weight:600;';
+  b.innerHTML=n?'<div style="'+sty+'">'+String.fromCodePoint(9888,65039)+' '+n+' pedido'+(n>1?'s':'')+' con entrega en menos de 48hs</div>':'';
+}
+function startApp() {
   try {
     const saved = await cloudGet();
     if(saved) {
@@ -1393,7 +1437,7 @@ async function startApp() {
     document.getElementById('loading').style.display='none';
     document.getElementById('appShell').style.display='flex';
     buildNav();
-    goPage('dashboard');
+    goPage('dashboard'); checkPedidosVencimiento();
   } catch(e) {
     console.error('startApp render error:', e);
     document.getElementById('loading').style.display='none';
