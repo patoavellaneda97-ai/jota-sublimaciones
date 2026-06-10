@@ -126,6 +126,11 @@ tr:hover td{background:rgba(255,255,255,0.015);}
 .color-chip:hover{border-color:var(--accent);}
 .color-chip.sel{border-color:var(--accent);background:rgba(99,102,241,.12);}
 .color-dot{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.2);flex-shrink:0;}
+
+.wsp-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;}
+.wsp-card-title{font-weight:600;font-size:14px;color:var(--text1);margin-bottom:6px;}
+.wsp-card-text{font-size:13px;color:var(--text2);white-space:pre-wrap;margin-bottom:12px;line-height:1.5;}
+.wsp-card-actions{display:flex;gap:8px;flex-wrap:wrap;}
 </style>
 <!-- AUTO-DEPLOY-VERSION: 2026-06-07T07:01:07.770Z -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -338,7 +343,7 @@ tr:hover td{background:rgba(255,255,255,0.015);}
     <div id="page-whatsapp" class="page">
       <div class="page-header"><h2>WhatsApp 📱</h2><p>Respuestas rápidas — copiá y pegá</p></div>
       <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
-        <button class="btn btn-primary" onclick="openModal('modal-respuesta');resetRespForm()">+ Nueva respuesta</button>
+        <button class="btn btn-primary" onclick="nuevaRespuestaWsp()">➕ Nueva respuesta</button>
       </div>
       <div id="respuestas-list"></div>
     </div>
@@ -465,12 +470,13 @@ tr:hover td{background:rgba(255,255,255,0.015);}
 
 <div class="modal-overlay" id="modal-respuesta">
   <div class="modal">
-    <div class="modal-header"><span class="modal-title">Nueva respuesta rápida</span><button class="modal-close" onclick="closeModal('modal-respuesta')">✕</button></div>
-    <div class="fg"><label class="flabel">Etiqueta</label><input class="finput" id="resp-label" placeholder="Ej: Precio remeras"></div>
-    <div class="fg"><label class="flabel">Mensaje</label><textarea class="finput" id="resp-texto" rows="6" placeholder="Escribí el mensaje..."></textarea></div>
+    <div class="modal-header"><span class="modal-title" id="resp-modal-title">Nueva respuesta rápida</span><button class="modal-close" onclick="closeModal('modal-respuesta')">✕</button></div>
+    <input type="hidden" id="wsp-edit-id">
+    <div class="fg"><label class="flabel">Título</label><input class="finput" id="wsp-titulo" placeholder="Ej: Precio remeras"></div>
+    <div class="fg"><label class="flabel">Mensaje</label><textarea class="finput" id="wsp-texto" rows="6" placeholder="Escribí el mensaje..."></textarea></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-secondary" onclick="closeModal('modal-respuesta')">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarRespuesta()">Guardar</button>
+      <button class="btn btn-primary" onclick="guardarRespuestaWsp()">Guardar</button>
     </div>
   </div>
 </div>
@@ -530,11 +536,18 @@ function initDB() {
     clientes:[],
     presupuestosGuardados:[],
     respuestas:[
-      {id:4,label:'👋 Saludo inicial',texto:'¡Hola! Gracias por contactarme 😊 Soy de Jota Sublimaciones. Trabajo con sublimación, estampados DTF, tazas, cuadros y más. ¿En qué te puedo ayudar?'},
-      {id:5,label:'💰 Precio remeras',texto:'¡Hola! Remeras estampadas DTF:\n• 1 unidad: $8.000\n• 3 a 5 unidades: $7.000 c/u\n• 6 o más: $6.500 c/u\nIncluye diseño. Tiempo: 3-5 días hábiles.'},
-      {id:6,label:'☕ Precio tazas',texto:'¡Hola! Tazas personalizadas:\n• 1 unidad: $3.500\n• 3 a 5: $3.000 c/u\n• 6 o más: $2.500 c/u\n¿Cuántas necesitás?'},
-      {id:7,label:'⏱️ Tiempos de entrega',texto:'Tiempos de producción:\n• Tazas y cuadros: 2-3 días hábiles\n• Remeras y buzos: 3-5 días hábiles\n• Banderas: 4-7 días hábiles\nTe aviso cuando esté listo 😊'},
-      {id:8,label:'🔜 Estoy ausente',texto:'¡Hola! Estoy trabajando y no puedo responder ahora. Te contesto a partir de las 14hs 😊 Dejame los detalles y te respondo a la brevedad. ¡Gracias!'},
+      {id:4,titulo:'Saludo inicial',texto:'¡Hola! 👋 Bienvenido/a a Jota Sublimaciones. ¿En qué te puedo ayudar?'},
+      {id:5,titulo:'Consulta de precios',texto:'Para darte un presupuesto exacto necesito saber: ¿qué prenda querés? ¿cuántas unidades? ¿qué diseño tenés en mente?'},
+      {id:6,titulo:'Tiempo de entrega',texto:'El tiempo de entrega habitual es de 7 a 10 días hábiles desde que confirmás el pedido y realizás el pago.'},
+      {id:7,titulo:'Formas de pago',texto:'Aceptamos transferencia bancaria, Mercado Pago y efectivo. ¿Cuál preferís?'},
+      {id:8,titulo:'Pedido recibido',texto:'✅ ¡Tu pedido fue recibido! Estamos trabajando en él y te avisamos cuando esté listo.'},
+      {id:9,titulo:'Pedido listo',texto:'🎉 ¡Tu pedido está listo! Podés pasar a retirarlo o coordinamos el envío. ¿Qué preferís?'},
+      {id:10,titulo:'Envíos',texto:'Realizamos envíos por correo y Andreani. El costo varía según el destino. ¿De qué localidad sos?'},
+      {id:11,titulo:'Seña requerida',texto:'Para confirmar el pedido necesitamos una seña del 50%. ¿Querés que te pase los datos para la transferencia?'},
+      {id:12,titulo:'Diseño propio',texto:'Podés enviarnos tu diseño en formato PNG o PDF en alta resolución (300 DPI mínimo). ¿Ya tenés el archivo listo?'},
+      {id:13,titulo:'Sin diseño propio',texto:'No te preocupes, podemos ayudarte a crear el diseño. Contame qué querés y te mandamos una propuesta. 🎨'},
+      {id:14,titulo:'Mínimo de prendas',texto:'El pedido mínimo es de 6 prendas por diseño. ¿Cuántas unidades necesitás?'},
+      {id:15,titulo:'Seguimiento pedido',texto:'Estamos trabajando en tu pedido. Te avisamos apenas esté listo. ¡Gracias por la paciencia! 🙏'},
     ],
     deudas:[],
   };
@@ -1266,39 +1279,96 @@ function editarPresupuesto(id) {
 
 // WHATSAPP
 // ═══════════════════════════════════════════════
+const RESPUESTAS_DEFAULT = [
+  {titulo:'Saludo inicial',texto:'¡Hola! 👋 Bienvenido/a a Jota Sublimaciones. ¿En qué te puedo ayudar?'},
+  {titulo:'Consulta de precios',texto:'Para darte un presupuesto exacto necesito saber: ¿qué prenda querés? ¿cuántas unidades? ¿qué diseño tenés en mente?'},
+  {titulo:'Tiempo de entrega',texto:'El tiempo de entrega habitual es de 7 a 10 días hábiles desde que confirmás el pedido y realizás el pago.'},
+  {titulo:'Formas de pago',texto:'Aceptamos transferencia bancaria, Mercado Pago y efectivo. ¿Cuál preferís?'},
+  {titulo:'Pedido recibido',texto:'✅ ¡Tu pedido fue recibido! Estamos trabajando en él y te avisamos cuando esté listo.'},
+  {titulo:'Pedido listo',texto:'🎉 ¡Tu pedido está listo! Podés pasar a retirarlo o coordinamos el envío. ¿Qué preferís?'},
+  {titulo:'Envíos',texto:'Realizamos envíos por correo y Andreani. El costo varía según el destino. ¿De qué localidad sos?'},
+  {titulo:'Seña requerida',texto:'Para confirmar el pedido necesitamos una seña del 50%. ¿Querés que te pase los datos para la transferencia?'},
+  {titulo:'Diseño propio',texto:'Podés enviarnos tu diseño en formato PNG o PDF en alta resolución (300 DPI mínimo). ¿Ya tenés el archivo listo?'},
+  {titulo:'Sin diseño propio',texto:'No te preocupes, podemos ayudarte a crear el diseño. Contame qué querés y te mandamos una propuesta. 🎨'},
+  {titulo:'Mínimo de prendas',texto:'El pedido mínimo es de 6 prendas por diseño. ¿Cuántas unidades necesitás?'},
+  {titulo:'Seguimiento pedido',texto:'Estamos trabajando en tu pedido. Te avisamos apenas esté listo. ¡Gracias por la paciencia! 🙏'},
+];
+
 function renderRespuestas() {
-  document.getElementById('respuestas-list').innerHTML=DB.respuestas.map(r=>`
-    <div class="quick-reply">
-      <div style="font-size:11px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">${r.label}</div>
-      <div style="font-size:13px;white-space:pre-line;line-height:1.6">${r.texto}</div>
-      <div style="display:flex;gap:8px;margin-top:12px">
-        <button class="btn btn-success btn-sm" onclick="copiarResp(${r.id})">📋 Copiar</button>
-        <button class="btn btn-danger btn-sm" onclick="eliminarResp(${r.id})">✕</button>
-      </div>
-    </div>`).join('');
+  const items = DB.respuestas;
+  if (!items || items.length === 0) {
+    document.getElementById('respuestas-list').innerHTML = '<p style="color:var(--text2);font-size:13px">No hay respuestas. Agregá una con el botón de arriba.</p>';
+    return;
+  }
+  document.getElementById('respuestas-list').innerHTML = items.map(r => {
+    const titulo = r.titulo || r.label || '';
+    const texto = r.texto || '';
+    const preview = texto.length > 120 ? texto.slice(0,120) + '...' : texto;
+    return '<div class="wsp-card">' +
+      '<div class="wsp-card-title">' + titulo + '</div>' +
+      '<div class="wsp-card-text">' + preview + '</div>' +
+      '<div class="wsp-card-actions">' +
+        '<button class="btn btn-success btn-sm" id="copy-btn-' + r.id + '" onclick="copiarRespuestaWsp(' + JSON.stringify(texto) + ', this)">📋 Copiar</button>' +
+        '<button class="btn btn-secondary btn-sm" onclick="editarRespuestaWsp(' + r.id + ')">✏️ Editar</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="eliminarRespuestaWsp(' + r.id + ')">🗑️ Eliminar</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 
-function copiarResp(id) {
-  const r=DB.respuestas.find(x=>x.id===id);
-  navigator.clipboard.writeText(r.texto).then(()=>toast('¡Copiado! Pegalo en WhatsApp 📱')).catch(()=>toast('Error al copiar','err'));
+function nuevaRespuestaWsp() {
+  document.getElementById('wsp-edit-id').value = '';
+  document.getElementById('wsp-titulo').value = '';
+  document.getElementById('wsp-texto').value = '';
+  document.getElementById('resp-modal-title').textContent = 'Nueva respuesta rápida';
+  openModal('modal-respuesta');
 }
 
-function resetRespForm(){
-  document.getElementById('resp-label').value='';
-  document.getElementById('resp-texto').value='';
+function editarRespuestaWsp(id) {
+  const r = DB.respuestas.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('wsp-edit-id').value = id;
+  document.getElementById('wsp-titulo').value = r.titulo || r.label || '';
+  document.getElementById('wsp-texto').value = r.texto || '';
+  document.getElementById('resp-modal-title').textContent = 'Editar respuesta rápida';
+  openModal('modal-respuesta');
 }
 
-function guardarRespuesta() {
-  const r={id:nid(),label:document.getElementById('resp-label').value,texto:document.getElementById('resp-texto').value};
-  if(!r.label||!r.texto) return toast('Completá todos los campos','err');
-  DB.respuestas.push(r);
+function guardarRespuestaWsp() {
+  const editId = document.getElementById('wsp-edit-id').value;
+  const titulo = document.getElementById('wsp-titulo').value.trim();
+  const texto = document.getElementById('wsp-texto').value.trim();
+  if (!titulo || !texto) return toast('Completá todos los campos', 'err');
+  if (editId) {
+    const idx = DB.respuestas.findIndex(x => x.id === Number(editId));
+    if (idx !== -1) { DB.respuestas[idx].titulo = titulo; DB.respuestas[idx].texto = texto; delete DB.respuestas[idx].label; }
+  } else {
+    DB.respuestas.push({id: nid(), titulo, texto});
+  }
   save(); closeModal('modal-respuesta'); renderRespuestas(); toast('Respuesta guardada ✅');
 }
 
-function eliminarResp(id) {
-  DB.respuestas=DB.respuestas.filter(r=>r.id!==id);
-  save(); renderRespuestas();
+function eliminarRespuestaWsp(id) {
+  if (!confirm('¿Eliminar esta respuesta?')) return;
+  DB.respuestas = DB.respuestas.filter(r => r.id !== id);
+  save(); renderRespuestas(); toast('Respuesta eliminada');
 }
+
+function copiarRespuestaWsp(texto, btn) {
+  navigator.clipboard.writeText(texto).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Copiado!';
+    btn.disabled = true;
+    setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 2000);
+    toast('¡Copiado! Pegalo en WhatsApp 📱');
+  }).catch(() => toast('Error al copiar', 'err'));
+}
+
+// Mantener compatibilidad con código viejo
+function copiarResp(id) { const r=DB.respuestas.find(x=>x.id===id); if(r) copiarRespuestaWsp(r.texto,document.getElementById('copy-btn-'+id)||document.createElement('button')); }
+function eliminarResp(id) { eliminarRespuestaWsp(id); }
+function resetRespForm() { document.getElementById('wsp-edit-id').value=''; document.getElementById('wsp-titulo').value=''; document.getElementById('wsp-texto').value=''; }
+function guardarRespuesta() { guardarRespuestaWsp(); }
 
 // ═══════════════════════════════════════════════
 // CONTENIDO
